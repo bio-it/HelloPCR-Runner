@@ -44,30 +44,34 @@ class SerialTask:
         serial_logger.error(f"Cannot found serial deivce")
         raise SerialNotDetectedError()
 
-    
-    def flush(self):
-        """ Flush Rx buffers """
-        while self.device.in_waiting > 0: # flush
-            self.device.readline()
-
-    def __write(self, cmd):
+    def __write(self, cmd:str, retry:int=3) -> None:
         """ Write Tx buffer """
-        try:
-            cmd = cmd+'\r\n'
-            self.device.write(cmd.encode())
-        except Exception as e:
-
-            serial_logger.error(f"Disconnected to serial device")
+        for count in range(retry+1):
+            try:
+                cmd = cmd+'\r\n'
+                self.device.write(cmd.encode())
+                break # jump for-else loop
+            except Exception as error:
+                self.device.reset_output_buffer() # flush output buffer
+                serial_logger.error(str(error))
+                serial_logger.error(f"write failed retry-{count}")
+        else:
+            serial_logger.error(f"serial device write function failed")
             raise SerialDisconnectedError()
 
-    def __read(self):
+    def __read(self, retry:int=3) -> str:
         """ Read Rx buffer """
-        try:
-            res = self.device.readline()
-        except Exception as e:
-            serial_logger.error(f"Disconnected to serial device")
+        for count in range(retry+1):
+            try:
+                res = self.device.readline()
+                break # jump for-else loop
+            except Exception as error:
+                self.device.reset_input_buffer() # flush input buffer
+                serial_logger.error(str(error))
+                serial_logger.error(f"read failed retry-{count}")
+        else:
+            serial_logger.error(f"serial device read function failed")
             raise SerialDisconnectedError()
-
         return res.decode().strip()
 
     def set_led_pwm(self, led_pwm:int) -> None:

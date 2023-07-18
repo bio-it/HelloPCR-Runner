@@ -66,14 +66,14 @@ class ShotWorker(threading.Thread):
         return self.intensity
     
     def camera_set_focus(self, focus, retry=5):
-        for count in range(retry):
+        for count in range(retry + 1):
             try:
                 self.camera.set_focus(focus)
                 break
             except COMError as error:
                 shot_logger.error(f'Camera set focus retry-{count+1}')
                 shot_logger.error(error)
-        if count+1 == retry:
+        else:
             error = ShotWorkerError(f'Camera set focus retry failed')
             shot_logger.error(error)
 
